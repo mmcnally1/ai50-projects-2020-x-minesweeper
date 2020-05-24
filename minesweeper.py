@@ -106,7 +106,7 @@ class Sentence():
         Returns the set of all cells in self.cells known to be mines.
         """
         mines = set()
-        if len(self.cells) <= self.count:
+        if len(self.cells) == self.count:
             for cell in self.cells:
                 mines.add(cell)
         return mines
@@ -203,15 +203,16 @@ class MinesweeperAI():
                 if (i, j) == cell:
                     continue
                 if 0 <= i < self.height and 0 <= j < self.width:
-                    if (i, j) not in self.safes and (i, j) not in self.moves_made:
+                    if (i, j) not in self.safes and (i, j) not in self.mines and (i, j) not in self.moves_made:
                         c = (i, j)
                         neighbors.add(c)
+                    if (i, j) in self.mines:
+                        count = count - 1
         if neighbors:
             new_knowledge = Sentence(cells = neighbors, count = count)
             self.knowledge.append(new_knowledge)
 
         for i in range(len(self.knowledge)):
-            print(self.knowledge[i])
             safes = self.knowledge[i].known_safes()
             for cell in safes:
                 self.mark_safe(cell)
@@ -221,23 +222,13 @@ class MinesweeperAI():
             for cell in mines:
                 self.mark_mine(cell)
 
-        logic_knowledge = set()
-        for sentence in self.knowledge:
-            for sentence1 in self.knowledge:
-                if sentence.cells in sentence1.cells:
-                    for cell in sentence1.cells:
-                        if cell not in sentence:
-                            logic_knowledge.add(cell)
-                            logic_count = sentence1.count - sentence.count
-                            new_knowledge1 = Sentence(cells = logic_knowledge, count = logic_count)
-                            self.knowledge.append(new_knowledge1)
-                if sentence1.cells in sentence.cells:
-                    for cell in sentence.cells:
-                        if cell not in sentence1:
-                            logic_knowledge.add(cell)
-                            logic_count = sentence1.count - sentence.count
-                            new_knowledge1 = Sentence(cells = logic_knowledge, count = logic_count)
-                            self.knowledge.append(new_knowledge1)
+        for i in range(len(self.knowledge)):
+            for j in range(len(self.knowledge)):
+                if self.knowledge[i].count != 0 and self.knowledge[j].count != 0:
+                    if len(self.knowledge[i].cells) != len(self.knowledge[j].cells):
+                        if self.knowledge[i].cells.issubset(self.knowledge[j].cells):
+                            self.knowledge[j].cells = self.knowledge[j].cells.difference(self.knowledge[i].cells)
+                            self.knowledge[j].count = self.knowledge[j].count - self.knowledge[i].count
 
 
     def make_safe_move(self):
@@ -251,7 +242,6 @@ class MinesweeperAI():
         """
         for cell in self.safes:
             if cell not in self.moves_made and cell not in self.mines:
-                print(cell)
                 return cell
         return None
 
@@ -267,6 +257,5 @@ class MinesweeperAI():
             for j in range(self.width):
                 if (i, j) not in self.mines and (i, j) not in self.moves_made:
                     c = (i, j)
-                    print(c)
                     return c
         return None
